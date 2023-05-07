@@ -1,28 +1,26 @@
-from flask import Flask
-from flask import request, jsonify
-import logging
-from flask_cors import CORS
-
-# Here is a missing import ? Are we missing some hashing library ???
+from flask import Flask, request, jsonify
+from flask_cors import CORS, cross_origin
+import bcrypt
 
 app = Flask(__name__)
 CORS(app)
+
 secretPass = "abcd"
 API_KEY_VAL = "12345"
 
 @app.route('/external-api', methods=['POST'])
+@cross_origin(origins=['http://localhost:3000'])
 def happy():
     data = request.json
     if not data:
         return jsonify(error="request body cannot be empty"), 400
-    #print(data)
     api_key_val = data["api_key"]
-    if api_key_val != API_KEY_VAL:
+    hashed_api_key = bcrypt.hashpw(api_key_val.encode('utf-8'), secretPass.encode('utf-8'))
+    if not bcrypt.checkpw(API_KEY_VAL.encode('utf-8'), hashed_api_key):
         return jsonify(result="You are not welcome Here !!")
-    return jsonify(result="Im your father Luke !")
+    response = jsonify(result="Im your father Luke !")
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 if __name__ == "__main__":
-    #logging.getLogger('flask_cors').level = logging.DEBUG
-    #app.logger.setLevel(logging.DEBUG)
-    logging.info("app run")
     app.run(debug=True, port=5002)
